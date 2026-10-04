@@ -46,6 +46,7 @@ notes = [
      "Aggressive acute glucose control has not been shown to change ulcer healing rate. "
      "A dynamic foot orthosis has a free-floating distal segment that reduces forefoot shear. It is used to prevent ulcers, not to heal them."),
     ("Foot20-055",
+     "<img src=\"ResStudy_Foot20-055.png\"><br>"
      "Deep wound breakdown after total ankle replacement, by timing<br>"
      "Acute (3 weeks, tendon exposed): {{c1::return to OR, debride, exchange the polyethylene, flap coverage}}<br>"
      "Subacute (about 6 weeks) or chronic infection: {{c2::remove the implants and place an antibiotic spacer}}<br>"
