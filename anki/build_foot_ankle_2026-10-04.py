@@ -45,6 +45,13 @@ notes = [
      "Why it beats a removable boot: {{c3::pressure reduction is similar, but a TCC cannot be taken off}}",
      "Aggressive acute glucose control has not been shown to change ulcer healing rate. "
      "A dynamic foot orthosis has a free-floating distal segment that reduces forefoot shear. It is used to prevent ulcers, not to heal them."),
+    ("Foot20-055",
+     "Deep wound breakdown after total ankle replacement, by timing<br>"
+     "Acute (3 weeks, tendon exposed): {{c1::return to OR, debride, exchange the polyethylene, flap coverage}}<br>"
+     "Subacute (about 6 weeks) or chronic infection: {{c2::remove the implants and place an antibiotic spacer}}<br>"
+     "Failed salvage or chronically infected TAR: {{c3::below-knee amputation}}",
+     "A wound deep enough to expose tendon is assumed to reach the joint, so the poly is exchanged. "
+     "Conversion to fusion is considered only when the wound bed is not infected. An intercalary allograft is wrong with active infection."),
 ]
 
 lines = [
