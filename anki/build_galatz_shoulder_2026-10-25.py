@@ -381,6 +381,15 @@ notes = [
      "Landmark for version: {{c2::bicipital groove}}; stem fin sits about {{c2::9 mm posterior to the groove}} in fracture cases<br>"
      "Deltoid insertion: {{c3::deltoid tuberosity, about 15 cm below the acromion}}",
      ""),
+    ("Anatomy::Radial_nerve",
+     "Blunt Hohmann placed laterally on the humeral shaft just above the deltoid insertion<br>"
+     "Nerve directly under the retractor on the deep deltoid at the surgical neck: {{c1::anterior branch of the axillary nerve, 5 to 7 cm below the acromion}}<br>"
+     "Radial nerve position at this level: {{c2::posterior, in the spiral groove at the level of the deltoid tuberosity}}<br>"
+     "Retractor errors that reach the radial nerve: {{c3::tip slides distal to the tuberosity, tip levered posteriorly, tip in muscle instead of on bone}}<br>"
+     "Arm position that rotates the groove toward a lateral retractor: {{c4::internal rotation}}",
+     "Gerwin 1996: radial nerve contacts the posterior humerus from about 20 cm above the medial epicondyle to 14 cm above the lateral epicondyle, "
+     "pierces the lateral intermuscular septum 10 cm above the lateral epicondyle. On a 30 cm humerus that is about 8 to 15 cm below the acromion. "
+     "Keep the tip subperiosteal, lateral or anterolateral, proximal to the tuberosity."),
 ]
 
 lines = [
