@@ -1,4 +1,4 @@
-import re, sys, os
+import os, sys
 
 # Case prep deck for two shoulder cases with Dr. Galatz (arthroscopic rotator cuff
 # repair of a large posterosuperior tear, and conversion of an anatomic TSA to a
@@ -392,51 +392,15 @@ notes = [
      "Keep the tip subperiosteal, lateral or anterolateral, proximal to the tuberosity."),
 ]
 
-lines = [
-    "#separator:tab",
-    "#html:true",
-    "#notetype:Cloze",
-    f"#deck:{DECK}",
-    "#tags column:3",
-]
-rows = []
-for group, text, extra in notes:
-    extra = (extra + "<br><br>" if extra else "") + "Case prep: Galatz shoulder, 10/2026"
-    tags = f"CasePrep Galatz Shoulder {group}"
-    for field in (text, extra):
-        assert not re.search("[–—]", field), (group, "dash")
-        assert not re.search(r"<(?=[\s\d=])", field), (group, "raw <")
-        assert "\t" not in field and "\n" not in field
-    rows.append((text, extra, tags))
-    lines.append("\t".join([text, extra, tags]))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ankibuild import build
 
-here = os.path.dirname(os.path.abspath(__file__))
-out = os.path.join(here, BASENAME + ".txt")
-open(out, "w").write("\n".join(lines) + "\n")
-n_cards = sum(len(set(re.findall(r"\{\{c(\d+)::", t))) for _, t, _ in notes)
-print(f"{len(notes)} notes, {n_cards} cards -> {out}")
-
-# Optional .apkg for direct import on mobile. Needs genanki (pip install genanki).
-try:
-    import genanki
-except ImportError:
-    print("genanki not installed, skipping .apkg")
-    sys.exit(0)
-
-model = genanki.Model(
-    1607392319 + 7, "Cloze (Galatz case prep)",
-    fields=[{"name": "Text"}, {"name": "Back Extra"}],
-    templates=[{
-        "name": "Cloze",
-        "qfmt": "{{cloze:Text}}",
-        "afmt": "{{cloze:Text}}<hr id=answer>{{Back Extra}}",
-    }],
-    css=".card { font-family: arial; font-size: 20px; text-align: left; color: black; background-color: white; } .cloze { font-weight: bold; color: blue; }",
-    model_type=genanki.Model.CLOZE,
+# deck_id and model_id are the IDs used for the first import. Keep them so a
+# rebuilt .apkg updates the existing deck instead of making a second one.
+build(
+    DECK, BASENAME, notes,
+    tags=lambda group: f"CasePrep Galatz Shoulder {group}",
+    extra_suffix="Case prep: Galatz shoulder, 10/2026",
+    deck_id=2059400110 + 25, model_id=1607392319 + 7,
+    model_name="Cloze (Galatz case prep)",
 )
-deck = genanki.Deck(2059400110 + 25, DECK)
-for text, extra, tags in rows:
-    deck.add_note(genanki.Note(model=model, fields=[text, extra], tags=tags.split()))
-apkg = os.path.join(here, BASENAME + ".apkg")
-genanki.Package(deck).write_to_file(apkg)
-print(f"wrote {apkg}")

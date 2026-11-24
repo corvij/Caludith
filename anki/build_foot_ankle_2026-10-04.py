@@ -1,5 +1,3 @@
-import re
-
 DECK = "OITE 2026::OITE 2026::1 Missed questions::ResStudy::Incorrect"
 
 notes = [
@@ -55,23 +53,14 @@ notes = [
      "Conversion to fusion is considered only when the wound bed is not infected. An intercalary allograft is wrong with active infection."),
 ]
 
-lines = [
-    "#separator:tab",
-    "#html:true",
-    "#notetype:Cloze",
-    f"#deck:{DECK}",
-    "#tags column:3",
-]
-for qid, text, extra in notes:
-    extra = f"{extra}<br><br>Source: AAOS ResStudy #{qid}"
-    tags = f"ResStudy Foot_Ankle ResStudy::{qid}"
-    for field in (text, extra):
-        assert not re.search("[–—]", field), (qid, "dash")
-        assert not re.search(r"<(?=[\s\d=])", field), (qid, "raw <")
-        assert "\t" not in field and "\n" not in field
-    lines.append("\t".join([text, extra, tags]))
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ankibuild import build
 
-out = "foot_ankle_missed_2026-10-04.txt"
-open(out, "w").write("\n".join(lines) + "\n")
-n_cards = sum(len(set(re.findall(r"\{\{c(\d+)::", t))) for _, t, _ in notes)
-print(f"{len(notes)} notes, {n_cards} cards -> {out}")
+build(
+    DECK, "foot_ankle_missed_2026-10-04", notes,
+    tags=lambda qid: f"ResStudy Foot_Ankle ResStudy::{qid}",
+    extra_suffix=lambda qid: f"Source: AAOS ResStudy #{qid}",
+    # Text import only: these notes go into an existing deck and note type.
+    apkg=False,
+)
