@@ -23,4 +23,8 @@ The copied scripts were checked before adding. They only contact PubMed (NCBI E-
 
 ## Network
 
-PubMed, Crossref, and doi.org are blocked in the cloud sessions this repo has been used in. Anything that verifies references needs the desktop app or a local terminal.
+Use the "Caludith" cloud environment for sessions on this repo. It allows PubMed (NCBI E-utilities), Crossref, doi.org, OpenAlex, EQUATOR, and the spine journals' sites, and its setup script installs genanki. The Default environment blocks these hosts. Several journal sites (ScienceDirect, SAGE, Springer, JNS, LWW) still show anti-bot screens to automated tools; confirm their author instructions in a browser.
+
+## Tests
+
+Run `python3 tests/test_tools.py` after changing any script here. Add `--live` to also check real references against PubMed and Crossref.

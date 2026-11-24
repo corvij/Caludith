@@ -6,7 +6,10 @@ year, volume, and first page, flags retracted papers, and prints a corrected
 AMA citation built from the PubMed record.
 
 Lookup order: PMID or DOI in the reference, then NCBI ECitMatch (journal, year,
-volume, first page, first author), then a title search.
+volume, first page, first author), then a title search (with the year, then
+without it in case the year is the error). A title-search hit counts only if
+its title matches at least 85%. References PubMed does not have (books,
+chapters, unindexed journals) are then looked up in Crossref.
 
 Usage:
   python3 check_refs.py paper.docx            # reads the References section
@@ -14,7 +17,7 @@ Usage:
   python3 check_refs.py paper.docx --offline  # parse only, no network
   python3 check_refs.py paper.docx --out refcheck.md
 
-Needs network access to eutils.ncbi.nlm.nih.gov. Cloud sessions usually block
+Needs network access to eutils.ncbi.nlm.nih.gov and api.crossref.org. Cloud sessions usually block
 it, so run this from the desktop app or a local terminal. Set NCBI_API_KEY to
 raise the rate limit and NCBI_EMAIL to identify yourself to NCBI (both optional).
 """
@@ -161,15 +164,61 @@ def pmid_from_citmatch(r):
     return last if last.isdigit() else None
 
 
+def title_ratio(a, b):
+    return difflib.SequenceMatcher(None, norm(a), norm(b)).ratio()
+
+
 def pmid_from_title(r):
+    """Title search, first with the year and then without it (the year may be the
+    error). Accept a hit only if its title closely matches."""
     if not r["title"] or len(r["title"]) < 15:
         return None
     t = re.sub(r"[^\w\s-]", " ", r["title"])
-    term = f"{t}[ti]" + (f" AND {r['year']}[dp]" if r["year"] else "")
-    body = json.loads(get(EUTILS + "esearch.fcgi", {"db": "pubmed", "retmode": "json", "term": term,
-                                                     "retmax": "3"}))
-    ids = body.get("esearchresult", {}).get("idlist", [])
-    return ids[0] if ids else None
+    terms = [f"{t}[ti] AND {r['year']}[dp]"] if r["year"] else []
+    terms.append(f"{t}[ti]")
+    for term in terms:
+        body = json.loads(get(EUTILS + "esearch.fcgi", {"db": "pubmed", "retmode": "json",
+                                                         "term": term, "retmax": "5"}))
+        ids = body.get("esearchresult", {}).get("idlist", [])
+        if not ids:
+            continue
+        best = max(summaries(ids).items(), key=lambda kv: title_ratio(r["title"], kv[1].get("title")),
+                   default=None)
+        if best and title_ratio(r["title"], best[1].get("title")) >= 0.85:
+            return best[0]
+    return None
+
+
+def crossref_lookup(r):
+    """For references PubMed does not have (books, chapters, some journals)."""
+    q = r["raw"][:300]
+    url = "https://api.crossref.org/works"
+    params = {"query.bibliographic": q, "rows": "3",
+              "select": "DOI,title,author,issued,container-title,short-container-title,volume,issue,page,type,update-to"}
+    with urllib.request.urlopen(url + "?" + urllib.parse.urlencode(params), timeout=30) as resp:
+        items = json.loads(resp.read().decode("utf-8"))["message"]["items"]
+    time.sleep(0.2)
+    if not r["title"]:
+        return None
+    for it in items:
+        title = (it.get("title") or [""])[0]
+        if title_ratio(r["title"], title) >= 0.85:
+            return it
+    return None
+
+
+def crossref_as_summary(it):
+    """Shape a Crossref item like a PubMed esummary record so compare() and ama() work."""
+    authors = []
+    for a in it.get("author", []):
+        initials = "".join(p[0] for p in re.split(r"[\s.-]+", a.get("given", "")) if p)
+        authors.append({"name": f"{a.get('family', '')} {initials}".strip()})
+    year = str((it.get("issued", {}).get("date-parts") or [[""]])[0][0] or "")
+    journal = (it.get("short-container-title") or it.get("container-title") or [""])[0]
+    return {"authors": authors, "title": (it.get("title") or [""])[0], "source": journal,
+            "pubdate": year, "volume": it.get("volume", ""), "issue": it.get("issue", ""),
+            "pages": it.get("page", ""), "pubtype": [it.get("type", "")],
+            "articleids": [{"idtype": "doi", "value": it.get("DOI", "")}]}
 
 
 def summaries(pmids):
@@ -199,9 +248,12 @@ def expand_pages(p):
     return f"{m.group(1)}{a}-{m.group(3) or m.group(1)}{b}"
 
 
+MAX_AUTHORS = 6  # AMA: list up to 6 authors, else the first 3 and et al. Spine uses 3.
+
+
 def ama(s):
     names = [a["name"] for a in s.get("authors", []) if a.get("authtype", "Author") == "Author"]
-    authors = ", ".join(names) if len(names) <= 6 else ", ".join(names[:3]) + ", et al"
+    authors = ", ".join(names) if len(names) <= MAX_AUTHORS else ", ".join(names[:3]) + ", et al"
     title = s.get("title", "").rstrip(".")
     journal = re.sub(r"\s*\(Phila Pa 1976\)", "", s.get("source", ""))
     year = (s.get("pubdate") or "")[:4]
@@ -219,24 +271,24 @@ def ama(s):
     return out
 
 
-def compare(r, s):
+def compare(r, s, src="PubMed"):
     problems = []
     names = [a["name"] for a in s.get("authors", [])]
     pm_first = names[0].rsplit(" ", 1)[0] if names else ""
     if r["first_author"] and pm_first and norm(r["first_author"]) != norm(pm_first):
-        problems.append(f"first author '{r['first_author']}' vs PubMed '{pm_first}'")
+        problems.append(f"first author '{r['first_author']}' vs {src} '{pm_first}'")
     if r["title"]:
         ratio = difflib.SequenceMatcher(None, norm(r["title"]), norm(s.get("title"))).ratio()
         if ratio < 0.9:
             problems.append(f"title differs ({ratio:.0%} match)")
     pm_year = (s.get("pubdate") or "")[:4]
     if r["year"] and pm_year and r["year"] != pm_year:
-        problems.append(f"year {r['year']} vs PubMed {pm_year}")
+        problems.append(f"year {r['year']} vs {src} {pm_year}")
     if r["volume"] and s.get("volume") and r["volume"] != s["volume"]:
-        problems.append(f"volume {r['volume']} vs PubMed {s['volume']}")
+        problems.append(f"volume {r['volume']} vs {src} {s['volume']}")
     pm_page = re.split(r"[-,]", s.get("pages", "") or "")[0]
     if r["first_page"] and pm_page and r["first_page"] != pm_page:
-        problems.append(f"first page {r['first_page']} vs PubMed {pm_page}")
+        problems.append(f"first page {r['first_page']} vs {src} {pm_page}")
     types = [t.lower() for t in s.get("pubtype", [])]
     if "retracted publication" in types:
         problems.insert(0, "RETRACTED")
@@ -255,18 +307,32 @@ def check(refs, offline=False, log=print):
         if offline:
             continue
         try:
-            if not row["pmid"] and r["doi"]:
-                row["pmid"], row["via"] = pmid_from_doi(r["doi"]), "DOI"
-            if not row["pmid"]:
-                row["pmid"], row["via"] = pmid_from_citmatch(r), "citation match"
-            if not row["pmid"]:
-                row["pmid"], row["via"] = pmid_from_title(r), "title search"
+            steps = [("DOI", lambda: pmid_from_doi(r["doi"]) if r["doi"] else None),
+                     ("citation match", lambda: pmid_from_citmatch(r)),
+                     ("title search", lambda: pmid_from_title(r))]
+            for via, step in steps:
+                if row["pmid"]:
+                    break
+                pmid = step()
+                if pmid:
+                    row["pmid"], row["via"] = pmid, via
         except RuntimeError as e:
             log(f"[{n}] {e}")
             row["status"] = "ERROR"
             continue
         if not row["pmid"]:
             row["status"] = "NOT FOUND"
+            try:
+                it = crossref_lookup(r)
+            except Exception as e:
+                log(f"[{n}] Crossref lookup failed: {e}")
+                it = None
+            if it:
+                cr = crossref_as_summary(it)
+                row["via"] = f"Crossref, doi:{it.get('DOI')}"
+                row["problems"] = compare(r, cr, "Crossref")
+                row["ama"] = ama(cr)
+                row["status"] = "NOT IN PUBMED, " + ("MISMATCH" if row["problems"] else "OK")
     if offline:
         return rows
     try:
@@ -276,14 +342,14 @@ def check(refs, offline=False, log=print):
         return rows
     for row in rows:
         s = found.get(row["pmid"]) if row["pmid"] else None
+        if row["pmid"] and not s:
+            row["status"] = "ERROR"
         if not s:
             continue
         row["problems"] = compare(row["ref"], s)
         row["ama"] = ama(s)
         if row["problems"] and row["problems"][0] == "RETRACTED":
             row["status"] = "RETRACTED"
-        elif row["via"] == "title search" and row["problems"]:
-            row["status"] = "CHECK MATCH"
         else:
             row["status"] = "MISMATCH" if row["problems"] else "OK"
     return rows
@@ -298,7 +364,8 @@ def report(rows, offline):
     out.append(", ".join(f"{k}: {v}" for k, v in sorted(counts.items())) + "\n")
     for row in rows:
         r = row["ref"]
-        out.append(f"## [{row['n']}] {row['status']}" + (f"  PMID {row['pmid']} ({row['via']})" if row["pmid"] else ""))
+        where = f"  PMID {row['pmid']} ({row['via']})" if row["pmid"] else (f"  ({row['via']})" if row["via"] else "")
+        out.append(f"## [{row['n']}] {row['status']}{where}")
         out.append(f"As written: {r['raw']}")
         if offline:
             out.append("Parsed: " + "; ".join(f"{k}={r[k]}" for k in
@@ -306,9 +373,9 @@ def report(rows, offline):
         for p in row["problems"]:
             out.append(f"- {p}")
         if row["ama"] and row["problems"]:
-            out.append(f"PubMed (AMA): {row['ama']}")
+            out.append(("PubMed" if row["pmid"] else "Crossref") + f" (AMA): {row['ama']}")
         if row["status"] == "NOT FOUND":
-            out.append("- Not found in PubMed. Check it by hand. Books, chapters, and some journals are not indexed.")
+            out.append("- Not found in PubMed or Crossref. Check it by hand. Books are often missing from both; a journal article missing from both may not exist as written.")
         out.append("")
     return "\n".join(out)
 
@@ -318,7 +385,12 @@ def main():
     ap.add_argument("file")
     ap.add_argument("--offline", action="store_true", help="parse only, no PubMed calls")
     ap.add_argument("--out", help="write the report to this markdown file")
+    ap.add_argument("--max-authors", type=int, default=6,
+                    help="list all authors up to this many, else the first 3 and et al "
+                         "(AMA default 6; Spine uses 3)")
     a = ap.parse_args()
+    global MAX_AUTHORS
+    MAX_AUTHORS = a.max_authors
     refs = split_refs(reference_block(read_lines(a.file)))
     if not refs:
         print("No references found. Put them under a 'References' heading, one per numbered line.")
@@ -331,7 +403,9 @@ def main():
         print(f"{len(rows)} references checked -> {a.out}")
     else:
         print(text)
-    bad = sum(r["status"] in ("MISMATCH", "RETRACTED", "NOT FOUND", "CHECK MATCH", "ERROR") for r in rows)
+    if a.offline:
+        return 0
+    bad = sum(not r["status"].endswith("OK") for r in rows)
     return 1 if bad else 0
 
 

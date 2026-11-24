@@ -1,23 +1,28 @@
 # Spine journal requirements
 
-Looked up 2026-11-24 from search result snippets. The journal sites were not reachable from the cloud session, so **no number here was confirmed on the live author instructions page**. Treat every value as a starting point and confirm it on the journal site before formatting a submission. When you confirm or correct a value, update this file and the `JOURNALS` table in `scripts/check_manuscript.py`, and change its status to "confirmed <date>".
+Looked up 2026-11-24. Spine was confirmed on its live author instructions page. The other journals' pages sit behind anti-bot screens, so their values come from search result snippets and are **not confirmed**. Treat every value as a starting point and confirm it on the journal site before formatting a submission. When you confirm or correct a value, update this file and the `JOURNALS` table in `scripts/check_manuscript.py`, and change its status to "confirmed <date>".
 
-Status key: **S** = snippet attributed to the journal's own author page. **X** = secondary source or sources conflict. Blank = not found.
+Status key: **C** = confirmed on the journal's own page (date given). **S** = snippet attributed to the journal's own author page. **X** = secondary source or sources conflict. Blank = not found.
 
 ## Spine (Wolters Kluwer)
 Author instructions: https://www.editorialmanager.com/spine/accounts/ifauth.htm
+**Confirmed on that page 2026-11-24** (status C) unless marked otherwise.
 
 | Item | Value | Status |
 |---|---|---|
-| Main text | 2700, 2800, or 3000 words (sources conflict) | X |
-| Abstract | Structured, 300 words max, no citations | S |
-| Abstract headings | Study Design, Objective, Summary of Background Data, Methods, Results, Conclusions | S |
-| Key Words | 3 to 8 (one copy says 10 to 15) | X |
-| Key Points | 3 to 5 bullets | S |
-| Level of Evidence | Required (Oxford CEBM). Not for basic science, biomechanics, case reports | S |
-| Table of contents blurb | About 3 sentences, 50 words max | S |
-| Reference style | AMA | S |
-| Case report | 750 words | S |
+| Main text | 3000 words excluding abstract and references. The submission checklist on the same page says 2800. Stay under 2800 to satisfy both | C |
+| Text headings | Introduction, Materials and Methods, Results, Discussion | C |
+| Abstract | Structured, 300 words max, no citations, few abbreviations | C |
+| Abstract headings | Study Design, Objective, Summary of Background Data, Methods, Results, Conclusions | C |
+| Key Words | 3 to 8 | C |
+| Key Points | 3 to 5 bullets, placed right after the key words | C |
+| Mini abstract (precis) | About 3 sentences, 50 words max, for the table of contents | C |
+| References | Double spaced, numbered in order of appearance. AMA Manual of Style. More than 3 authors: first 3, then et al | C |
+| Figure legends | Under 150 characters or about 50 words, on a separate page | C |
+| Title page | Funding, IRB approval, and disclosures | C |
+| Clinical trials | Follow CONSORT | C |
+| Case report | 1500 words, structured abstract, online only | C |
+| Level of Evidence | Required (Oxford CEBM) per search snippets; not found on this page | S |
 
 ## The Spine Journal (Elsevier, NASS)
 Author instructions: https://www.sciencedirect.com/journal/the-spine-journal/publish/guide-for-authors
@@ -97,9 +102,11 @@ Author instructions: https://jbjs.org/jbjs-ifa.php
 | Level of Evidence | Authors assign it from the JBJS table; editors decide | S |
 | AI | Disclose every tool (version or year, maker) and how its output was verified | S |
 
-## Gaps to fill when the sites are reachable
+## Gaps to fill
 
-- Reference count limits for Spine, The Spine Journal, GSJ, Spine Deformity, JBJS
+These journal pages show anti-bot screens to automated tools. To confirm a journal, open its author instructions in a browser, copy the text into the session, and update this file and `scripts/check_manuscript.py` together.
+
+- Reference count limits for The Spine Journal, GSJ, Spine Deformity, JBJS
 - Author count before "et al" in each journal's reference style
 - Blinded manuscript and title page rules
 - AI disclosure rules for Spine, The Spine Journal, GSJ, ESJ, Spine Deformity

@@ -23,14 +23,14 @@ import argparse
 import re
 import sys
 
-# Limits are from search snippets of each journal's author instructions, 2026-11-24.
-# None of them was confirmed on the live page. Confirm before submitting and
+# Limits as of 2026-11-24. Spine was confirmed on its author instructions page;
+# the rest are from search snippets and are unconfirmed. Confirm before submitting and
 # update references/journals.md and this table together. None = not enforced.
 JOURNALS = {
     "spine": {"name": "Spine",
               "abstract_headings": ["Study Design", "Objective", "Summary of Background Data",
                                     "Methods", "Results", "Conclusion"],
-              "abstract_limit": 300, "text_limit": None, "ref_limit": None},
+              "abstract_limit": 300, "text_limit": 2800, "ref_limit": None, "confirmed": True},
     "spinej": {"name": "The Spine Journal",
                "abstract_headings": ["Background Context", "Purpose", "Study Design",
                                      "Patient Sample", "Outcome Measures", "Methods", "Results",
@@ -82,11 +82,31 @@ SECTION_RE = re.compile(
     r"level of evidence|figure legends?|tables?)\s*:?\s*$", re.I)
 
 
+SUPER_CITE = re.compile(r"[\d,\s\-\u2013]+")
+
+
+def para_text(p):
+    """Paragraph text with superscript citations (e.g. 3,5-7) rewritten as [3,5-7]
+    so they can be checked like bracketed ones."""
+    out, sup = [], []
+    for run in p.runs:
+        if run.font.superscript and SUPER_CITE.fullmatch(run.text or "") and run.text.strip():
+            sup.append(run.text)
+            continue
+        if sup:
+            out.append("[" + "".join(sup).strip().strip(",") + "]")
+            sup = []
+        out.append(run.text)
+    if sup:
+        out.append("[" + "".join(sup).strip().strip(",") + "]")
+    return "".join(out)
+
+
 def read_text(path):
     if path.endswith(".docx"):
         import docx
         d = docx.Document(path)
-        lines = [p.text for p in d.paragraphs]
+        lines = [para_text(p) for p in d.paragraphs]
         for t in d.tables:
             lines.append("")
             for row in t.rows:
@@ -153,7 +173,7 @@ def main():
     ref_limit = a.ref_limit or j.get("ref_limit")
     warn = 0
 
-    print(f"== {a.file}" + (f"  (target: {j['name']}, limits unconfirmed, check the journal site)" if j else ""))
+    print(f"== {a.file}" + (f"  (target: {j['name']}, " + ("limits confirmed 2026-11-24)" if j.get("confirmed") else "limits unconfirmed, check the journal site)") if j else ""))
     found = [s for s in sec if s != "front" and sec[s]]
     print("Sections found: " + (", ".join(found) or "none (use plain headings like 'Methods' on their own line)"))
 
@@ -205,7 +225,7 @@ def main():
         if not out_of_order:
             print("Bracketed citations are in order of first appearance.")
     else:
-        print("No [n] citations found. Superscript citations in .docx cannot be checked here.")
+        print("No numbered citations found. Use [n] in text files; in Word, bracketed or superscript numbers both work.")
 
     # Tables and figures
     print("\n-- Tables and figures")

@@ -78,6 +78,7 @@ Cloud sessions cannot reach the user's Anki. After building, add a section to `a
 
 1. Run the deck script and fix any problems it reports.
 2. Lint all decks and plans: `python3 anki/ankibuild.py anki/*.txt case_plans/*.md` should report 0 problems.
-3. Read the case plan once more for anything stated as the attending's preference that is really a default.
-4. Commit the case plan, deck script, .txt, .apkg, media, and HANDOFF update together.
-5. Tell the user the card count, the deck name, and the open items to confirm with the attending.
+3. If you changed `anki/ankibuild.py`, run `python3 tests/test_tools.py`.
+4. Read the case plan once more for anything stated as the attending's preference that is really a default.
+5. Commit the case plan, deck script, .txt, .apkg, media, and HANDOFF update together.
+6. Tell the user the card count, the deck name, and the open items to confirm with the attending.

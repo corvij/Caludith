@@ -9,6 +9,8 @@ Work from the user's data and drafts. Never invent results, numbers, patients, o
 
 ## Writing rules (Dr. Corvi's standing preferences)
 
+Before drafting or editing any prose, load the `my-writing-style` skill (listed as `anthropic-skills:my-writing-style`) if it is available. Its rules on voice and wording come first; the rules below are the minimum when it is not available.
+
 - No en or em dashes, anywhere.
 - Plain sentences. No filler, no grand opening or closing lines. Do not start the Introduction with "Spine surgery is a rapidly evolving field" or similar.
 - Prefer "use" over "utilize", "about" over "approximately" in prose, "we" for the authors.
@@ -50,9 +52,11 @@ Journal keys: `spine`, `spinej`, `jns`, `gsj`, `esj`, `deformity`, `css`, `jbjs`
 
 `check_manuscript.py` (works offline): word counts by section, abstract headings for the journal, citation order and uncited references, table and figure order, abbreviations used before definition, dashes, filler phrases, possible patient identifiers.
 
-`check_refs.py` (needs PubMed access): finds each reference in PubMed by PMID, DOI, citation match, or title; flags wrong first author, title, year, volume, or page; flags retracted papers and errata; prints the corrected AMA citation from PubMed. Cloud sessions block PubMed, so run it from the desktop app or a local terminal. Use `--offline` to check parsing only.
+`check_refs.py` (needs PubMed and Crossref access): finds each reference by PMID, DOI, citation match, or title; flags wrong first author, title, year, volume, or page; flags retracted papers and errata; prints the corrected AMA citation. The "Caludith" cloud environment allows these hosts; the Default environment does not. Use `--offline` to check parsing only.
 
-Use headings on their own line (Abstract, Introduction, Methods, Results, Discussion, Conclusions, References) so the scripts can find the sections. Bracketed citations like [3] or [4-6] can be checked; Word superscript citations cannot.
+Use headings on their own line (Abstract, Introduction, Methods, Results, Discussion, Conclusions, References) so the scripts can find the sections. Citations can be bracketed ([3], [4-6]) or, in Word files, superscript numbers.
+
+For Spine, add `--max-authors 3` to `check_refs.py` (Spine lists the first 3 authors, then et al, when there are more than 3). `check_refs.py` falls back to Crossref for references PubMed does not index, and reports anything found in neither.
 
 Then walk the reporting checklist item by item and give the user a filled-in checklist with the manuscript location of each item, marking any item that is missing.
 
